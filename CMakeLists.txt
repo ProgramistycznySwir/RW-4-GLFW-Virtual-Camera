@@ -6,5 +6,7 @@
  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
  conan_basic_setup()
 
- add_executable(RW_Zad4 main.c)
- target_link_libraries(RW_Zad4 ${CONAN_LIBS})
+#  add_executable(RW_Zad4 main.c)
+#  target_link_libraries(RW_Zad4 ${CONAN_LIBS})
+add_executable(RW_Zad4_notMine notMine.c)
+ target_link_libraries(RW_Zad4_notMine ${CONAN_LIBS})
