@@ -44,23 +44,17 @@ struct Camera {
 };
 
 struct Light {
-    glm::vec3 x;
-    glm::vec3 y;
-    glm::vec3 z;
+    glm::vec3 position;
     glm::vec3 direction;
     glm::vec3 KaColor;
     glm::vec3 KdColor;
-    double moveOX;
-    double moveOY;
-    double moveOZ;
+    glm::vec3 move;
 } light = {
-    {1, 0, 0},
-    {0, 1, 0},
-    {0, 0, 1},
-    {-1, -1, -1},
-    {10, 10, 10},
-    {10, 10, 10},
-    0, 0, 0
+    { 1, 1, 1 },
+    { -1, -1, -1 },
+    { 1, 1, 1 },
+    { 1, 1, 1 },
+    { 0, 0, 0 }
 };
 
 struct Material {
@@ -74,8 +68,11 @@ struct Material {
 };
 
 
-void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& UVs,
-    std::vector < glm::vec3 >& normals, std::vector< uint32_t >& ind) { 
+void load_obj(
+        std::vector < glm::vec3 >& vertices,
+        std::vector < glm::vec2 >& UVs,
+        std::vector < glm::vec3 >& normals,
+        std::vector< uint32_t >& ind) {
     std::vector< unsigned int > vertexIndices, texIndices, normalIndices;
     std::vector<glm::vec3> tmp_vertices, tmp_normals;
     std::vector<glm::vec2> tmp_UVs;
@@ -84,6 +81,10 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& UV
     FILE* f = fopen("../Resources/monkey.obj", "r");
     if(f == NULL)
         myPanic("There is no file: \"../Resources/monkey.obj\"!\n");
+    FILE* m = fopen("../Resources/monkey.mtl", "r");
+    if(m == NULL)
+        myPanic("There is no file: \"../Resources/monkey.mtl\"!\n");
+    
     uint32_t vert_index = 0;
 
     int l;
@@ -96,19 +97,16 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& UV
             glm::vec3 vertex;
             fscanf(f, "%f %f %f", &vertex.x, &vertex.y, &vertex.z);
             tmp_vertices.push_back(vertex);
-            // // read(f);
         }
         else if (strcmp(line, "vt") == 0) {
-            glm::vec2 tex;
-            fscanf(f, "%f %f", &tex.x, &tex.y);
-            tmp_UVs.push_back(tex);
-            // read(f);
+            glm::vec2 uv;
+            fscanf(f, "%f %f", &uv.x, &uv.y);
+            tmp_UVs.push_back(uv);
         }
         else if (strcmp(line, "vn") == 0) {
             glm::vec3 normal;
             fscanf(f, "%f %f %f", &normal.x, &normal.y, &normal.z);
             tmp_normals.push_back(normal);
-            // read(f);
         }
         else if (strcmp(line, "f") == 0) {
             std::string vertex1, vertex2, vertex3;
@@ -129,22 +127,14 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& UV
                     texIndices.push_back(tIn);
                     normalIndices.push_back(nIn);
                 }
-                else {
+                else
                     ind.push_back(l);
-                }
             }
         }
-        else if (strcmp(line, "mtllib") == 0) {
+        else if (strcmp(line, "mtllib") == 0)
             fscanf(f, "%s", &mtl_file_name);
-            // read(f);
-        }
-        else if (strcmp(line, "usemtl") == 0) {
+        else if (strcmp(line, "usemtl") == 0)
             fscanf(f, "%s", &mat_name);
-            // read(f);
-        }
-        else {
-            // read(f);
-        }
         line_index++;
     }
     printf("load_obj() has // read %d lines from obj.\n", line_index); // DEBUG
@@ -167,48 +157,17 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& UV
 
     fclose(f);
 
-    // const char mtl_file_path = 'a';
-    // sscanf("../Resources/", "%s", mtl_file_path);
-    // strcat(&mtl_file_path, &mtl_file_name);
-    // strcat()
-    // FILE* m = fopen(&mtl_file_path, "r");
-    FILE* m = fopen("../Resources/monkey.mtl", "r");
-    if(m == NULL)
-        myPanic("Can't find mtl_file specified in .obj!\n");
-
-    // char line[128];
     while (fscanf(m, "%s", line) == 1) {
-        // fscanf(m, "%s", line);
-
-        if (strcmp(line, "newmtl") == 0) {
-            continue;
-            const char matName = 'a';
-            fscanf(m, "%s", matName);
-            if (strcmp(&matName, &mat_name) == 0) {
-                continue;
-            }
-            // read(m);
-        }
-        if (strcmp(line, "Ns") == 0) {
+        if (strcmp(line, "Ns") == 0) 
             fscanf(m, "%f", &mat.Ns);
-            // read(m);
-        }
-        else if (strcmp(line, "Ka") == 0) {
+        else if (strcmp(line, "Ka") == 0) 
             fscanf(m, "%f %f %f", &mat.Ka.x, &mat.Ka.y, &mat.Ka.z);
-            // read(m);
-        }
-        else if (strcmp(line, "Kd") == 0) {
+        else if (strcmp(line, "Kd") == 0) 
             fscanf(m, "%f %f %f", &mat.Kd.x, &mat.Kd.y, &mat.Kd.z);
-            // read(m);
-        }
-        else if (strcmp(line, "Ks") == 0) {
+        else if (strcmp(line, "Ks") == 0)
             fscanf(m, "%f %f %f", &mat.Ks.x, &mat.Ks.y, &mat.Ks.z);
-            // read(m);
-        }
     }
-
     fclose(m);
-            // return; // DEBUG
 
     std::string texName;
     texName = "../Resources/metal-texture.jpg";
@@ -304,8 +263,7 @@ int main(void) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
     window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
-    if (!window)
-    {
+    if (!window) {
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
@@ -317,7 +275,6 @@ int main(void) {
     glfwSetCursorPosCallback(window, cursor_callback);
 
     glfwMakeContextCurrent(window);
-    // gladLoadGL(glfwGetProcAddress);
     gladLoadGL();
     glfwSwapInterval(1);
 
@@ -335,7 +292,6 @@ int main(void) {
     std::vector<uint32_t> ind;
 
     load_obj(vertices, texs, normals, ind);
-    // return 0; // DEBUG
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Texture);
 
