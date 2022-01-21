@@ -1,17 +1,17 @@
-﻿#pragma warning(suppress : 4996)
-#pragma warning(disable : 4996)
-#pragma warning( disable : 4244 ) 
-#pragma warning( disable : 26451 )
+﻿// #pragma warning(suppress : 4996)
+// #pragma warning(disable : 4996)
+// #pragma warning( disable : 4244 ) 
+// #pragma warning( disable : 26451 )
 
 
-#include <glad/gl.h>
+#include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-#include <glm/glm/glm.hpp>
-#include <glm/glm/gtc/matrix_transform.hpp>
-#include <glm/glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -77,33 +77,27 @@ void read(FILE* f) {
     }
 }
 
-void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& texs,
+void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& UVs,
     std::vector < glm::vec3 >& normals, std::vector< uint32_t >& ind) { 
     std::vector< unsigned int > vertexIndices, texIndices, normalIndices;
     std::vector<glm::vec3> tmp_vertices, tmp_normals;
-    std::vector<glm::vec2> tmp_texs;
+    std::vector<glm::vec2> tmp_UVs;
     glm::vec3 v, t, n;
  
-    FILE* f = fopen("gitara1.obj", "r");
+    FILE* f = fopen("../Resources/monkey.obj", "r");
+    if(f == NULL) {
+        printf("There is no file: \"../Resources/monkey.obj\"!\n");
+        exit(EXIT_FAILURE);
+    }
     uint32_t vert = 0;
 
-    bool first = true;
-    bool was = false;
     int l;
-    std::string mat_name;
+    int line_index = 0;
+    const char mat_name = 'a';
     const char mtl_file_name = 'a';
-    while (true) {
-        char line[128];
-        fscanf(f, "%s", line);
-        if (strcmp(line, "o") == 0) {
-            if (first) {
-                first = false;
-            }
-            else {
-                break;
-            }
-        }
-        else if (strcmp(line, "v") == 0) {
+    char line[128];
+    while (fscanf(f, "%s", line) == 1) {
+        if (strcmp(line, "v") == 0) {
             glm::vec3 vertex;
             fscanf(f, "%f %f %f", &vertex.x, &vertex.y, &vertex.z);
             tmp_vertices.push_back(vertex);
@@ -112,7 +106,7 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& te
         else if (strcmp(line, "vt") == 0) {
             glm::vec2 tex;
             fscanf(f, "%f %f", &tex.x, &tex.y);
-            tmp_texs.push_back(tex);
+            tmp_UVs.push_back(tex);
             read(f);
         }
         else if (strcmp(line, "vn") == 0) {
@@ -125,13 +119,11 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& te
             std::string vertex1, vertex2, vertex3;
             int vIn, tIn, nIn;
             for (int i = 0; i < 3; i++) {
-                was = false;
                 l = -1;
                 fscanf(f, "%d/%d/%d", &vIn, &tIn, &nIn);
 
                 for (int j = 0; j < vertexIndices.size(); j++) {
                     if (vIn == vertexIndices[j] && tIn == texIndices[j] && nIn == normalIndices[j]) {
-                        was = true;
                         l = j;
                         break;
                     }
@@ -150,6 +142,7 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& te
         else if (strcmp(line, "mtllib") == 0) {
             fscanf(f, "%s", &mtl_file_name);
             read(f);
+            // break; // DEBUG
         }
         else if (strcmp(line, "usemtl") == 0) {
             fscanf(f, "%s", &mat_name);
@@ -158,7 +151,9 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& te
         else {
             read(f);
         }
+        line_index++;
     }
+    printf("load_obj() has read %d lines from obj.\n", line_index); // DEBUG
    
     for (unsigned int i = 0; i < vertexIndices.size(); i++) {
         unsigned int vIn = vertexIndices[i];
@@ -167,8 +162,8 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& te
     }
     for (unsigned int i = 0; i < texIndices.size(); i++) {
         unsigned int tIn = texIndices[i];
-        glm::vec2 tex = tmp_texs[tIn - 1];
-        texs.push_back(tex);
+        glm::vec2 tex = tmp_UVs[tIn - 1];
+        UVs.push_back(tex);
     }
     for (unsigned int i = 0; i < normalIndices.size(); i++) {
         unsigned int nIn = normalIndices[i];
@@ -179,53 +174,66 @@ void load_obj(std::vector < glm::vec3 >& vertices, std::vector < glm::vec2 >& te
     fclose(f);
     std::string texName;
 
-    FILE* m = fopen(&mtl_file_name, "r");
+    // const char mtl_file_path = 'a';
+    // sscanf("../Resources/", "%s", mtl_file_path);
+    // strcat(&mtl_file_path, &mtl_file_name);
+    // strcat()
+    // FILE* m = fopen(&mtl_file_path, "r");
+    FILE* m = fopen("../Resources/monkey.mtl", "r");
+    if(m == NULL) {
+        printf("Can't find mtl_file specified in .obj!\n");
+        exit(EXIT_FAILURE);
+    }
 
-    texName = "tekk.jpg";
-    while (true) {
-         char line[128];
-            
-            if (strcmp(line, "newmtl") == 0) {
-                std::string matName;
-                fscanf(m, "%s", matName);
-                if (strcmp(&matName[0], &mat_name[0]) == 0) {
-                    continue;
-                }
-                read(m);
+    texName = "../Resources/wood_texgiberish.jpg";
+    // char line[128];
+    while (fscanf(m, "%s", line) == 1) {
+        // fscanf(m, "%s", line);
+
+        if (strcmp(line, "newmtl") == 0) {
+            continue;
+            const char matName = 'a';
+            fscanf(m, "%s", matName);
+            if (strcmp(&matName, &mat_name) == 0) {
+                continue;
             }
-            if (strcmp(line, "Ns") == 0) {
-                fscanf(m, "%f %f %f", mat.Ns);
-                read(m);
-            }
-            else if (strcmp(line, "Ka") == 0) {
-                fscanf(m, "%f %f %f", mat.Ka.x, mat.Ka.y, mat.Ka.z);
-                read(m);
-            }
-            else if (strcmp(line, "Kd") == 0) {
-                fscanf(m, "%f %f %f", mat.Kd.x, mat.Kd.y, mat.Kd.z);
-                read(m);
-            }
-            else if (strcmp(line, "Ks") == 0) {
-                fscanf(m, "%f %f %f", mat.Ks.x, mat.Ks.y, mat.Ks.z);
-                read(m);
-            }
-            else {
-                read(m);
-            }
+            read(m);
         }
-   
+        if (strcmp(line, "Ns") == 0) {
+            fscanf(m, "%f", &mat.Ns);
+            read(m);
+        }
+        else if (strcmp(line, "Ka") == 0) {
+            fscanf(m, "%f %f %f", &mat.Ka.x, &mat.Ka.y, &mat.Ka.z);
+            read(m);
+        }
+        else if (strcmp(line, "Kd") == 0) {
+            fscanf(m, "%f %f %f", &mat.Kd.x, &mat.Kd.y, &mat.Kd.z);
+            read(m);
+        }
+        else if (strcmp(line, "Ks") == 0) {
+            fscanf(m, "%f %f %f", &mat.Ks.x, &mat.Ks.y, &mat.Ks.z);
+            read(m);
+        }
+        else {
+            read(m);
+        }
+    }
+
     fclose(m);
+            // return; // DEBUG
 
     char* charTexName = &texName[0];
     int width, height, comp;
     unsigned char* text = stbi_load(charTexName, &width, &height, &comp, 0);
     if (text == NULL) {
-        printf("Nie zaladowano pliku\n");
+        printf("Texture file not found!\n");
         exit(1);
     }
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, text);
     glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(text);
+    printf("OBJ loaded successfully!\n");
 }
 
 static void error_callback(int error, const char* description) {
@@ -282,7 +290,7 @@ static void cursor_callback(GLFWwindow* window, double xPos, double yPos) {
 
 char* load_shader(const char* source) {
     FILE* f;
-    fopen_s(&f, source, "rb");
+    f = fopen64(source, "rb");
     if (!f)
         return NULL;
     fseek(f, 0, SEEK_END);
@@ -295,6 +303,7 @@ char* load_shader(const char* source) {
     return buf;
 }
 int main(void) {
+    printf("Program started.\n"); // DEBUG
     GLFWwindow* window;
     GLuint VBO, VAO, EBO, vertex_shader, fragment_shader, program;
     GLuint aPos_location, aNormal_location;
@@ -321,7 +330,8 @@ int main(void) {
     glfwSetCursorPosCallback(window, cursor_callback);
 
     glfwMakeContextCurrent(window);
-    gladLoadGL(glfwGetProcAddress);
+    // gladLoadGL(glfwGetProcAddress);
+    gladLoadGL();
     glfwSwapInterval(1);
 
     glGenVertexArrays(1, &VAO);
@@ -338,6 +348,7 @@ int main(void) {
     std::vector<uint32_t> ind;
 
     load_obj(vertices, texs, normals, ind);
+    // return 0; // DEBUG
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Texture);
 
@@ -374,7 +385,7 @@ int main(void) {
     char infoLog[512];
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    const char* shader_text = load_shader("textureVE.txt");
+    const char* shader_text = load_shader("../Resources/Shaders/base.vert");
     glShaderSource(vertex_shader, 1, &shader_text, NULL);
     glCompileShader(vertex_shader);
 
@@ -385,7 +396,7 @@ int main(void) {
     }
 
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    shader_text = load_shader("textureFE.txt");
+    shader_text = load_shader("../Resources/Shaders/base.frag");
     glShaderSource(fragment_shader, 1, &shader_text, NULL);
     glCompileShader(fragment_shader);
 
@@ -417,6 +428,7 @@ int main(void) {
 
     while (!glfwWindowShouldClose(window))
     {
+        std::cout << "Frame ";
         float ratio;
         int width, height;
         glm::mat4x4 m, p, v, vp, mvp;
