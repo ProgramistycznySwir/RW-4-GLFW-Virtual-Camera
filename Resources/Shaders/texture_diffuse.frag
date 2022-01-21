@@ -17,5 +17,5 @@ void main(){
 
 	float diff = clamp(dot(vNormal_norm, vLight_norm), 0, 1);
 	vec4 tex = texture(Texture, TexCoord);
-	gl_FragColor = tex *(Ka + diff *Il); // dla jasnej tekstury -> 	gl_FragColor = tex +(Ka + diff *Il);
+	gl_FragColor = tex +(Ka + diff *Il);
 }
